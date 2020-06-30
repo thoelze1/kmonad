@@ -1,5 +1,6 @@
 #include <IOKit/hid/IOHIDLib.h>
 #include <IOKit/IOKitLib.h>
+#include <CoreGraphics/CoreGraphics.h>
 #include <float.h>
 
 IOHIDQueueRef queue;
@@ -75,11 +76,36 @@ int release_kb() {
 
 #ifdef STANDALONE
 int main() {
+    /*
     grab_kb();
     struct KeyEvent ke;
     while(1) {
         wait_key(&ke);
         send_key(&ke);
     }
+    */
+    // This method won't work because it requires kmonad to track
+    // modifiers and probably all kinds of other state
+    CGEventSourceRef src = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
+    CGEventRef cmdd  = CGEventCreateKeyboardEvent(src, 0x38, true);
+    CGEventRef cmdu = CGEventCreateKeyboardEvent(src, 0x38, false);
+    CGEventRef spcd = CGEventCreateKeyboardEvent(src, 0x31, true);
+    CGEventRef spcu = CGEventCreateKeyboardEvent(src, 0x31, false);
+
+    CGEventSetFlags(spcd, kCGEventFlagMaskCommand);
+    CGEventSetFlags(spcu, kCGEventFlagMaskCommand);
+
+    CGEventTapLocation loc = kCGHIDEventTap; // kCGSessionEventTap also works
+    CGEventPost(loc, cmdd);
+    CGEventPost(loc, spcd);
+    CGEventPost(loc, spcu);
+    CGEventPost(loc, cmdu);
+
+    CFRelease(cmdd);
+    CFRelease(cmdu);
+    CFRelease(spcd);
+    CFRelease(spcu);
+    CFRelease(src);
+    return 0;
 }       
 #endif

@@ -5,6 +5,7 @@
 #include <thread>
 #include <map>
 #include <iostream>
+#include <filesystem>
 #include <mach/mach_error.h>
 
 int init_sink(void);

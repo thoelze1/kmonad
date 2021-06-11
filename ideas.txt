@@ -1,0 +1,79 @@
+The core of kmonad, written in haskell, could expose certain patterns
+to the user via a lisp. Such patterns might be:
+
+"input-stream-matching predicates"
+
+- Change any sequence of presses to another sequence
+- Chording
+- Layers
+- Modded button
+
+"Building blocks"
+-
+
+tap-next-release
+
+tap-hold-next-release
+
+(tap-hold-next-release ms hold-func tap-func
+    
+tap-hold-next-release-thresh
+
+(map
+
+(tap-hold-next-release
+    (first-press
+      ( (timeout ms hold-func) (
+      (release tap-func)
+      (after (press other-key)
+        (release tap-func)
+        ())))
+  ())
+
+(set butt (tap-hold-next-release 200 a sft))
+
+(multi-tap-hold
+  (
+
+; adds a dam for all desired input
+(defun tnr-dam tapped held kill
+  (defun helper new pool
+    (lambda (x)
+      (cond ((and (isRel x)
+                  (in new x))
+              (add-top (mod-layer held))
+              (release pool))
+            ((eq x kill)
+              (exec tapped)
+              (release pool))
+            (else
+              (helper (if (isPress x) (cons x new) l)
+                      (cons x pool))))))
+  (helper [] []))
+
+; this is the default button w/fewer opts
+(defun make-tnr input tapped held
+  (add-top (layer (lambda (x)
+                    (if (eq x (get-press input))
+                        (tnr-dam tapped held (get-press input))
+                        x))))
+
+; A layer is a function. It receives certain input
+
+; a key event is timed: it triggers at a certain point. a layer is
+  also timed: it starts and ends at a certain point.
+
+; we want a layer to retain a memory of a certain number of key events
+  or of a certain amount of time. but we don't have to initialize it
+  this way: because we can specify an arbitrary function as above, we
+  can make it recursive, calling itself with prior input. so does the
+  function still need to have some notion of time? actually yes,
+  because we may want it to disappear after a set amount of time, as
+  in the case of tap-hold.
+
+; kmonad is just a fold over input! its result we do not care
+  about. in fact a stream can be thought of as an infinite list, over
+  which we can never finish mapping, and in a way there will never be
+  a result...
+
+kmonad = 

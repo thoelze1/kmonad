@@ -1,3 +1,15 @@
+module StreamXForm
+  ( Manip
+  , Layer
+  , mkLayer
+  , interact'
+  , listRemap
+  , listRemapWithKill
+  , modTrigger
+  , manipsToTree
+  ) where
+
+-- This is not exported but needs to be...
 import Control.Monad.State
 
 -- Add a monad as a type parameter to replace the "Maybe" below.
@@ -43,6 +55,14 @@ send (Tree l t) x =
 exec :: T a -> [a] -> T a
 exec = foldl send
 
+interact' :: IO (T Char) -> IO (T Char)
+interact' i = do
+  c <- getChar
+  t <- i
+  if c == '\n'
+    then return t
+    else interact' $ return $ send t c
+
 -- FIXME Because we are invoking the following stateful transofmations
 -- from within `send`, it is impossible that the result of `<- get`
 -- will ever be of the form `Nothing` (based on the behavior of
@@ -80,29 +100,11 @@ modTrigger x m c
   | otherwise = do
       return ([c],[])
 
-out :: Manip a
-out c = do
-  mc <- get
-  case mc of
-    Nothing -> return ([],[])
-    Just cs -> do
-      put (Just (c:cs))
-      return ([],[])
+layersToTree :: [Layer a [a]] -> T a
+layersToTree = foldr Tree Empty
 
-clear :: Manip a
-clear c = do
-  return ([c],[])
+manipsToLayers :: [Manip a] -> [Layer a [a]]
+manipsToLayers = map mkLayer
 
-atob :: Manip Char
-atob = listRemap ['a'] ['b']
-
-{-
-atob :: Manip Char
-atob c = do
-  case c of
-    'a' -> return (['b'],[])
-    _ -> return ([c],[])
--}
-
-modatob :: Manip Char
-modatob = modTrigger 'x' (listRemapWithKill ['a'] ['b'] 'y')
+manipsToTree :: [Manip a] -> T a
+manipsToTree = layersToTree . manipsToLayers
